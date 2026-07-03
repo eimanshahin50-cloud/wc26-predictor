@@ -12,6 +12,6 @@ jobs:
     steps:
       - name: Trigger Sync
         run: |
-          curl \
+          curl -i \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             https://fifawc26-predictor-xi.vercel.app/api/cron/sync
