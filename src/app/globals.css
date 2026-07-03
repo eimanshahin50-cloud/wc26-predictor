@@ -1,0 +1,30 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { color-scheme: dark; }
+
+html, body {
+  background:
+    radial-gradient(1200px 600px at 80% -10%, rgba(124,92,255,0.18), transparent 60%),
+    radial-gradient(900px 500px at -10% 10%, rgba(34,197,94,0.10), transparent 55%),
+    #0a0a0b;
+  color: #ededef;
+  -webkit-font-smoothing: antialiased;
+}
+
+@layer components {
+  .glass {
+    @apply bg-surface border border-line backdrop-blur-md;
+  }
+  .card {
+    @apply glass rounded-xl2 shadow-glow;
+  }
+  .muted { @apply text-white/55; }
+  .chip { @apply text-xs px-2 py-0.5 rounded-full border border-line bg-white/5; }
+}
+
+/* nicer number inputs */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+input[type="number"] { -moz-appearance: textfield; }

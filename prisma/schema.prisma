@@ -1,0 +1,103 @@
+// Prisma schema — PostgreSQL (Supabase/Neon/Vercel Postgres all work).
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL") // for migrations with poolers (Supabase). Optional.
+}
+
+enum MatchStatus {
+  SCHEDULED
+  LIVE
+  FINISHED
+  POSTPONED
+}
+
+enum Outcome {
+  HOME
+  AWAY
+  DRAW
+}
+
+model User {
+  id        String   @id @default(cuid())
+  username  String   @unique          // "Amateur" | "nxtmv"
+  name      String
+  password  String                     // bcrypt hash
+  isExpert  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  predictions Prediction[]
+}
+
+model Team {
+  id        Int     @id            // provider team id (stable mapping)
+  name      String
+  shortName String?
+  flagUrl   String?               // remote flag image (provider) — see Flag component for fallback
+
+  homeFixtures Fixture[] @relation("HomeTeam")
+  awayFixtures Fixture[] @relation("AwayTeam")
+  goals        Goal[]
+}
+
+model Fixture {
+  id           Int         @id          // provider fixture id
+  round        String?                  // "Group Stage", "Round of 32", etc.
+  kickoff      DateTime
+  status       MatchStatus @default(SCHEDULED)
+  homeTeamId   Int
+  awayTeamId   Int
+  homeGoals    Int?                     // null until known
+  awayGoals    Int?
+  pointsAwarded Boolean    @default(false) // idempotency guard for cron scoring
+
+  homeTeam Team @relation("HomeTeam", fields: [homeTeamId], references: [id])
+  awayTeam Team @relation("AwayTeam", fields: [awayTeamId], references: [id])
+
+  goals       Goal[]
+  predictions Prediction[]
+
+  @@index([kickoff])
+  @@index([status])
+}
+
+// A real scored goal (from the provider's match events).
+model Goal {
+  id         String  @id @default(cuid())
+  fixtureId  Int
+  teamId     Int
+  playerId   Int                // provider player id
+  playerName String
+  minute     Int?
+  ownGoal    Boolean @default(false)
+  penalty    Boolean @default(false)
+  providerEventId String? @unique // dedupe events across syncs
+
+  fixture Fixture @relation(fields: [fixtureId], references: [id], onDelete: Cascade)
+  team    Team    @relation(fields: [teamId], references: [id])
+}
+
+model Prediction {
+  id         String  @id @default(cuid())
+  userId     String
+  fixtureId  Int
+  homeGoals  Int
+  awayGoals  Int
+  outcome    Outcome
+  scorerIds  Int[]              // predicted player ids (capped at app level)
+  scorerNames String[]          // snapshot of names at prediction time (for display)
+
+  points     Int     @default(0)
+  scored     Boolean @default(false) // whether points have been computed
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fixture Fixture @relation(fields: [fixtureId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, fixtureId]) // one prediction per user per match
+}
