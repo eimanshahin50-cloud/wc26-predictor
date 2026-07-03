@@ -1,0 +1,17 @@
+name: Sync World Cup Data
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Trigger Sync
+        run: |
+          curl \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            https://fifawc26-predictor-xi.vercel.app/api/cron/sync
